@@ -1,4 +1,5 @@
 from enum import Enum,auto
+import gc
 import collections
 
 
@@ -164,6 +165,10 @@ class SymbolTransition(Transition):
 
 class State:
     def __init__(self,bIsFinal):
+        #debug
+        self.ID=State.counter
+        State.counter+=1
+        #
         self.bIsFinal=bIsFinal
         #self.transitions=DoublyLinkedList()
         self.transitions=[]
@@ -174,14 +179,42 @@ class State:
     def getNextStateByTransitions(self,symb):
         for i in self.transitions:
             if i.isPossible(symb):
-                return i
+                return i.getState()
         return None
     def isFinal(self):
-        return self.isFinal()
+        return self.bIsFinal
 
+class FiniteStateMachine:
+    def __init__(self,initialState : State):
+        self.initialState=initialState
+        self.currentState=initialState
+    def switchState(self,symb):
+        nextState=self.currentState.getNextStateByTransitions(symb)
+        if nextState!= None:
+            self.currentState=nextState
+        return nextState
+    def canStop(self):
+        return self.currentState.isFinal()
+    def reset(self):
+        self.currentState=self.initialState
 
+#def ShowAll_IDs:
+#    for obj in gc.get_objects():
+#        if isinstance(obj,State):
+#            State.ID
 
+State.counter=0
 
+a=State(False)
+b=State(True)
+c=State(True)
+
+a.addTransition(SymbolTransition('2',b))
+FSM=FiniteStateMachine(a)
+res=FSM.switchState('2')
+print(b.ID)
+print(res.ID)
+#print("Counter = "+str(State.counter))
 """
 All operators:
 Arithmetic:
