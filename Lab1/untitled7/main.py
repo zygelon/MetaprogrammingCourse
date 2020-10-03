@@ -1,6 +1,6 @@
 from enum import Enum,auto
 #TokenName.value , TokenName.name
-class TokenName(Enum):
+class ETokenName(Enum):
     IDENT = auto()
     DEDENT = auto()
     WHITESPACE = auto()
@@ -21,18 +21,59 @@ class TokenName(Enum):
 #
 #Position[line,column]
 def TokenLocToStr(location):
-    return "[line:" + location[0] + ",column:" + location[1] + "]";
+    return "[line:" + str(location[0]) + ",column:" + str(location[1]) + "]";
 
 class Token:
-    def __init__(self,tokenName : TokenName, value : str, begin : (int,int)):
+    def __init__(self, tokenName : ETokenName, value : str, begin : (int, int)):
         self.tokenName=tokenName
         self.value=value
         self.begin=begin
 
     def __str__(self):
         if(self.value!=None):
-            return "{" + self.tokenName.name + " | " + self.value + "} starts at : " + TokenLocToStr(self.begin)
+            return "{" + self.tokenName.name + " | " + str(self.value) + "} starts at : " + TokenLocToStr(self.begin)
         else:
             return "{" + self.tokenName.name + "} starts at : " + TokenLocToStr(self.begin)
 
 
+
+"""
+All operators:
+Arithmetic:
++
+-
+*
+/
+%
+++
+--
+Relational:
+==
+!=
+>
+<
+>=
+<=
+Logical
+&&
+||
+!
+Bitwise
+&
+|
+^
+>>
+<<
+Assignment
+=
++=
+-=
+*=
+/=
+%=
+<<=
+>>=
+&=
+^=
+|=
+"""
