@@ -3,7 +3,7 @@ from pathlib import Path
 import os
 import gc
 import collections
-
+import re
 
 class DListNode:
     """
@@ -176,8 +176,8 @@ class SymbolTransition(Transition):
 class State:
     def __init__(self,bIsFinal):
         #debug
-        self.ID=State.counter
-        State.counter+=1
+        #self.ID=State.counter
+       # State.counter+=1
         #
         self.bIsFinal=bIsFinal
         #self.transitions=DoublyLinkedList()
@@ -209,15 +209,19 @@ class FiniteStateMachine:
     def __init__(self,initialState : State):
         self.initialState=initialState
         self.currentState=initialState
+        self.matchedStr=''
     def switchState(self,symb):
         nextState=self.currentState.getNextStateByTransitions(symb)
         if nextState!= None:
+            self.matchedStr+=symb
             self.currentState=nextState
         return nextState
     def canStop(self):
         return self.currentState.isFinal()
     def reset(self):
+        self.matchedStr=''
         self.currentState=self.initialState
+    def GetMatchedStr(self): return self.matchedStr
 
 class Automaton:
     def __init__(self,FSM : FiniteStateMachine):
@@ -257,36 +261,48 @@ class StateMachineFactory:
 
         #q1.addTransition(q4) # ++
         #q2.addTransition(q10) # --
-        q11.addTransition(SymbolTransition('<'),q12) # <<
-        q13.addTransition(SymbolTransition('>'),q14) # >>
+        q11.addTransition(SymbolTransition('<',q12)) # <<
+        q13.addTransition(SymbolTransition('>',q14)) # >>
 
-        q1.addTransition(SymbolTransition('='),q9)
-        q2.addTransition(SymbolTransition('='),q9)
-        q3.addTransition(SymbolTransition('='),q9)
-        q5.addTransition(SymbolTransition('='),q9)
-        q6.addTransition(SymbolTransition('='),q9)
-        q7.addTransition(SymbolTransition('='),q9)
-        q8.addTransition(SymbolTransition('='),q9)
-        q12.addTransition(SymbolTransition('='),q9)
-        q14.addTransition(SymbolTransition('='),q9)
-        q15.addTransition(SymbolTransition('='),q9)
+        q1.addTransition(SymbolTransition('=',q9))
+        q2.addTransition(SymbolTransition('=',q9))
+        q3.addTransition(SymbolTransition('=',q9))
+        q5.addTransition(SymbolTransition('=',q9))
+        q6.addTransition(SymbolTransition('=',q9))
+        q7.addTransition(SymbolTransition('=',q9))
+        q8.addTransition(SymbolTransition('=',q9))
+        q12.addTransition(SymbolTransition('=',q9))
+        q14.addTransition(SymbolTransition('=',q9))
+        q15.addTransition(SymbolTransition('=',q9))
         q16.addTransition(SymbolTransition('=',q9))
         #init
-        initial.addTransition(SymbolTransition('+'),q1)
-        initial.addTransition(SymbolTransition('-'), q2)
-        initial.addTransition(SymbolTransition('*'), q3)
-        initial.addTransition(SymbolTransition('/'), q5)
-        initial.addTransition(SymbolTransition('&'), q6)
-        initial.addTransition(SymbolTransition('^'), q7)
-        initial.addTransition(SymbolTransition('|'), q8)
-        initial.addTransition(SymbolTransition('<'), q11)
-        initial.addTransition(SymbolTransition('>'), q13)
-        initial.addTransition(SymbolTransition('%'), q15)
-        initial.addTransition(SymbolTransition(':'), q16)
+        initial.addTransition(SymbolTransition('+',q1))
+        initial.addTransition(SymbolTransition('-', q2))
+        initial.addTransition(SymbolTransition('*', q3))
+        initial.addTransition(SymbolTransition('/', q5))
+        initial.addTransition(SymbolTransition('&', q6))
+        initial.addTransition(SymbolTransition('^', q7))
+        initial.addTransition(SymbolTransition('|', q8))
+        initial.addTransition(SymbolTransition('<', q11))
+        initial.addTransition(SymbolTransition('>', q13))
+        initial.addTransition(SymbolTransition('%', q15))
+        initial.addTransition(SymbolTransition(':', q16))
 
         return FiniteStateMachine(initial)
+    @staticmethod
+    def whitespaceStateMathine():
+        initial=State(False)
+        q1=State(True)
+        funcTransition=TransitionFunction()
+        funcTransition.isPossibleToTransit=lambda x : (x==' ' or x == '\t')
+        q1.addTransition(FuncTransition(funcTransition,q1))
+        initial.addTransition(FuncTransition(funcTransition,q1))
+        return FiniteStateMachine(initial)
 
-patterns=[[StateMachineFactory.operatorStateMachine(),ETokenName.OPERATOR]]
+patterns=[
+            [StateMachineFactory.whitespaceStateMathine(),ETokenName.WHITESPACE],
+            [StateMachineFactory.operatorStateMachine(),ETokenName.OPERATOR],
+          ]
 #class Patterns:
     #def __init__(self):
     #    self.
@@ -297,14 +313,35 @@ class Lexer:
         self.indentionLengths=[]
         self.indentionLengths.append(0)
 
+    @staticmethod
+    def calculateWhitespaceCharNumAtTheBeginning(text : str):
+        spaceNum = 0
+        for i in text:
+            if i==' ' or i=='t':
+                spaceNum+=1
+        return spaceNum
+
     def tokenize(self,filepath : str):
         self.tokens.clear()
+        lineIndex=-1
         with p.open() as TextFile:
             for line in TextFile:
-                curLine=line
-                for i in range(len(curLine)):
-                    isMatched=False
-                    for i in patterns:
+                lineIndex+=1
+                for symbIndex in range(len(line)):
+                    curSymb = line[symbIndex]
+                    #for curPattern in patterns:
+                    curPattern=patterns[1]
+                    if curPattern[1]==ETokenName.OPERATOR:
+                        res=curPattern[0].switchState(curSymb)
+                        if res==None and curPattern[0].canStop():
+                            #draw token
+                            self.tokens.append(Token(curPattern[1],curPattern[0].GetMatchedStr(),[lineIndex,symbIndex]))
+                        if res==None:
+                            curPattern[0].reset()
+
+        return self.tokens
+                        #elif curPattern[1]==ETokenName.WHITESPACE:
+
 
         curLineNum=1
         #line=
@@ -315,12 +352,17 @@ class Lexer:
 #            State.ID
 
 
-p=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode.go')
+p=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode2.go')
+lex=Lexer()
+res=lex.tokenize(p)
+for i in res:
+    if type(i)== Token:
+        print(i)
 #q=Path.cwd()
 #print(q)
-with p.open() as TextFile:
-    for line in TextFile:
-        print(line)
+#with p.open() as TextFile:
+#    for line in TextFile:
+#        print(line)
 
 #print("Counter = "+str(State.counter))
 """
