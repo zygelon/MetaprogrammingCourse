@@ -1,4 +1,6 @@
 from enum import Enum,auto
+from pathlib import Path
+import os
 import gc
 import collections
 
@@ -126,6 +128,13 @@ class ETokenName(Enum):
     NEW_LINE= auto()
     DATA_TYPE=auto()
 
+KEYWORDS_VALUES={'break','case','chan','const','continue','default','defer',
+                 'else','fallthrough','for','func','go','goto','if','import',
+                 'interface','map','package','range','return','select','struct',
+                 'switch','type','var'}
+
+DATA_TYPES={'int','string','int8','int16','int32','int64','uint8','uint16','uint32','uint64','uint'
+               'byte','rune','uintptr','float32','float64','complex64','complex128'}
 #
 #
 #Position[line,column]
@@ -225,21 +234,94 @@ class Automaton:
         else:
             return [None,None]
 
+class StateMachineFactory:
+    @staticmethod
+    def operatorStateMachine():
+        initial=State(False)
+        q1=State(True) # +
+        q2=State(True) # -
+        q3=State(True) # *
+        q4=State(True) # ++
+        q5=State(True) # /
+        q6=State(True) # &
+        q7=State(True) # ^
+        q8=State(True) # |
+        q9=State(True) # =
+        q10=State(True) # --
+        q11=State(False) # <
+        q12=State(True) # <<
+        q13=State(False) # >
+        q14=State(True) # >>
+        q15=State(True) # %
+        q16=State(False) # :
+
+        #q1.addTransition(q4) # ++
+        #q2.addTransition(q10) # --
+        q11.addTransition(SymbolTransition('<'),q12) # <<
+        q13.addTransition(SymbolTransition('>'),q14) # >>
+
+        q1.addTransition(SymbolTransition('='),q9)
+        q2.addTransition(SymbolTransition('='),q9)
+        q3.addTransition(SymbolTransition('='),q9)
+        q5.addTransition(SymbolTransition('='),q9)
+        q6.addTransition(SymbolTransition('='),q9)
+        q7.addTransition(SymbolTransition('='),q9)
+        q8.addTransition(SymbolTransition('='),q9)
+        q12.addTransition(SymbolTransition('='),q9)
+        q14.addTransition(SymbolTransition('='),q9)
+        q15.addTransition(SymbolTransition('='),q9)
+        q16.addTransition(SymbolTransition('=',q9))
+        #init
+        initial.addTransition(SymbolTransition('+'),q1)
+        initial.addTransition(SymbolTransition('-'), q2)
+        initial.addTransition(SymbolTransition('*'), q3)
+        initial.addTransition(SymbolTransition('/'), q5)
+        initial.addTransition(SymbolTransition('&'), q6)
+        initial.addTransition(SymbolTransition('^'), q7)
+        initial.addTransition(SymbolTransition('|'), q8)
+        initial.addTransition(SymbolTransition('<'), q11)
+        initial.addTransition(SymbolTransition('>'), q13)
+        initial.addTransition(SymbolTransition('%'), q15)
+        initial.addTransition(SymbolTransition(':'), q16)
+
+        return FiniteStateMachine(initial)
+
+patterns=[[StateMachineFactory.operatorStateMachine(),ETokenName.OPERATOR]]
+#class Patterns:
+    #def __init__(self):
+    #    self.
+
+class Lexer:
+    def __init__(self):
+        self.tokens=[]
+        self.indentionLengths=[]
+        self.indentionLengths.append(0)
+
+    def tokenize(self,filepath : str):
+        self.tokens.clear()
+        with p.open() as TextFile:
+            for line in TextFile:
+                curLine=line
+                for i in range(len(curLine)):
+                    isMatched=False
+                    for i in patterns:
+
+        curLineNum=1
+        #line=
+
 #def ShowAll_IDs:
 #    for obj in gc.get_objects():
 #        if isinstance(obj,State):
 #            State.ID
 
-State.counter=0
 
-a=State(False)
-b=State(True)
-c=State(True)
+p=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode.go')
+#q=Path.cwd()
+#print(q)
+with p.open() as TextFile:
+    for line in TextFile:
+        print(line)
 
-a.addTransition(SymbolTransition('2',b))
-FSM=FiniteStateMachine(a)
-Auto=Automaton(FSM)
-Auto.match("222",0)
 #print("Counter = "+str(State.counter))
 """
 All operators:
@@ -281,3 +363,5 @@ Assignment
 ^=
 |=
 """
+
+#multiline automaton will be later
