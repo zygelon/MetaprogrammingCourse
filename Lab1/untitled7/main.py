@@ -144,7 +144,7 @@ class Token:
         else:
             return "{" + self.tokenName.name + "} starts at : " + TokenLocToStr(self.begin)
 
-class TransitionFunc:
+class TransitionFunction:
     def isPossibleToTransit(self,c):
         pass
 
@@ -162,6 +162,7 @@ class SymbolTransition(Transition):
         return self.symbol==c
     def getState(self):
         return self.state
+
 
 class State:
     def __init__(self,bIsFinal):
@@ -184,6 +185,17 @@ class State:
     def isFinal(self):
         return self.bIsFinal
 
+
+class FuncTransition(Transition):
+    def __init__(self, transitionFunction: TransitionFunction, state: State):
+        self.transitionFunction=transitionFunction
+        self.state=state
+    def isPossible(self,c):
+        return self.transitionFunction.isPossibleToTransit(c)
+    def getState(self):
+        return self.state
+
+
 class FiniteStateMachine:
     def __init__(self,initialState : State):
         self.initialState=initialState
@@ -198,6 +210,21 @@ class FiniteStateMachine:
     def reset(self):
         self.currentState=self.initialState
 
+class Automaton:
+    def __init__(self,FSM : FiniteStateMachine):
+        self.FSM=FSM
+    def match(self,text : str, fromPos : int):
+        self.FSM.reset()
+        transitionFunc=TransitionFunction()
+        transitionFunc.isPossibleToTransit=lambda x : x.isdigit()
+        curPos=fromPos
+        while curPos<len(text) and self.FSM.switchState(text[curPos]) != None:
+            curPos+=1
+        if self.FSM.canStop():
+            return [fromPos,curPos]
+        else:
+            return [None,None]
+
 #def ShowAll_IDs:
 #    for obj in gc.get_objects():
 #        if isinstance(obj,State):
@@ -211,9 +238,8 @@ c=State(True)
 
 a.addTransition(SymbolTransition('2',b))
 FSM=FiniteStateMachine(a)
-res=FSM.switchState('2')
-print(b.ID)
-print(res.ID)
+Auto=Automaton(FSM)
+Auto.match("222",0)
 #print("Counter = "+str(State.counter))
 """
 All operators:
