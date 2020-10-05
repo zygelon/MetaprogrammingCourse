@@ -119,14 +119,15 @@ class ETokenName(Enum):
     STRING=auto
 
     ERROR_TOKEN=auto()
-    SEMI = auto()
-    OPERATOR = auto() #+,-,*,/, //, **,&,|,^,=,+=,-=,%=,*=,/=,&=,|=,^=, //=, ~, <<, >>, %
+#    SEMI = auto()
+    IDENTIFY=auto()
+    OPERATOR = auto() #+,-,*, ++,&,|,^,=,+=,-=,%=,*=,/=,&=,|=,^=, //=, ~, <<, >>, %,--,|=
     COMPARISON_OPERATOR = auto()
     BRACKET = auto()
     KEYWORD = auto()
-    DOT = auto()
-    NEW_LINE= auto()
-    DATA_TYPE=auto()
+#    DOT = auto()
+#    NEW_LINE= auto()
+#    DATA_TYPE=auto()
 
 KEYWORDS_VALUES={'break','case','chan','const','continue','default','defer',
                  'else','fallthrough','for','func','go','goto','if','import',
@@ -360,12 +361,21 @@ class StateMachineFactory:
         q5.addTransition(SymbolTransition('`',q6))
 
         return FiniteStateMachine(initial)
-
+    @staticmethod
+    def indentifierStateMachine():
+        initial = State(False)
+        q1=State(True)
+        funcTransition=TransitionFunction()
+        funcTransition.isPossibleToTransit=lambda x : re.match(r'[0-9a-zA-Z_.]+',x)!=None
+        initial.addTransition(FuncTransition(funcTransition,q1))
+        q1.addTransition(FuncTransition(funcTransition,q1))
+        return FiniteStateMachine(initial)
 patterns=[
             [StateMachineFactory.quoteStateMachine(),ETokenName.STRING],
             [StateMachineFactory.whitespaceStateMathine(),ETokenName.WHITESPACE],
             [StateMachineFactory.operatorStateMachine(),ETokenName.OPERATOR],
-            [StateMachineFactory.comparisonOperatorStateMachine(),ETokenName.COMPARISON_OPERATOR]
+            [StateMachineFactory.comparisonOperatorStateMachine(),ETokenName.COMPARISON_OPERATOR],
+            [StateMachineFactory.indentifierStateMachine(),ETokenName.IDENTIFY]
           ]
 #class Patterns:
     #def __init__(self):
@@ -412,7 +422,9 @@ class Lexer:
                         if curPattern[1]==ETokenName.STRING:
                             bIsQuote=self.GiveSymb(curPattern,curSymb)
 
-                        if not bIsQuote and (curPattern[1]==ETokenName.OPERATOR or curPattern[1] == ETokenName.WHITESPACE or curPattern[1]==ETokenName.COMPARISON_OPERATOR):
+                        if not bIsQuote and (curPattern[1]==ETokenName.OPERATOR or curPattern[1] ==
+                        ETokenName.WHITESPACE or curPattern[1]==ETokenName.COMPARISON_OPERATOR or
+                        curPattern[1]==ETokenName.IDENTIFY):
                             self.GiveSymb(curPattern,curSymb)
                             # res=curPattern[0].switchState(curSymb)
                             # if res==None and curPattern[0].canStop():
@@ -434,7 +446,7 @@ class Lexer:
 #            State.ID
 
 
-p=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode2.go')
+p=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode.go')
 lex=Lexer()
 res=lex.tokenize(p)
 for i in res:
