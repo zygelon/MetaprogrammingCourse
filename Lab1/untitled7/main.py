@@ -307,9 +307,38 @@ class StateMachineFactory:
         initial.addTransition(FuncTransition(funcTransition,q1))
         return FiniteStateMachine(initial)
 
+    @staticmethod
+    def comparisonOperatorStateMachine():
+        initial=State(False)
+        q1=State(True) # <
+        q2=State(True) # >
+        q3=State(True) # !
+        q4=State(True) # <=,>=,==,!=
+        q5=State(False) # &
+        q6=State(True) # &&
+        q7=State(False) # |
+        q8=State(True) # ||
+        q9=State(False) # =
+
+        q1.addTransition(SymbolTransition('=',q4))
+        q2.addTransition(SymbolTransition('=',q4))
+        q3.addTransition(SymbolTransition('=', q4))
+        q5.addTransition(SymbolTransition('&',q6))
+        q7.addTransition(SymbolTransition('|',q8))
+        q9.addTransition(SymbolTransition('=',q4))
+
+        initial.addTransition(SymbolTransition('<',q1))
+        initial.addTransition(SymbolTransition('>', q2))
+        initial.addTransition(SymbolTransition('!', q3))
+        initial.addTransition(SymbolTransition('&', q5))
+        initial.addTransition(SymbolTransition('|', q7))
+        initial.addTransition(SymbolTransition('=', q9))
+        return FiniteStateMachine(initial)
+
 patterns=[
             [StateMachineFactory.whitespaceStateMathine(),ETokenName.WHITESPACE],
             [StateMachineFactory.operatorStateMachine(),ETokenName.OPERATOR],
+            [StateMachineFactory.comparisonOperatorStateMachine(),ETokenName.COMPARISON_OPERATOR]
           ]
 #class Patterns:
     #def __init__(self):
@@ -350,7 +379,7 @@ class Lexer:
                     curSymb = line[symbIndex]
 
                     for curPattern in patterns:
-                        if curPattern[1]==ETokenName.OPERATOR or curPattern[1] == ETokenName.WHITESPACE:
+                        if curPattern[1]==ETokenName.OPERATOR or curPattern[1] == ETokenName.WHITESPACE or curPattern[1]==ETokenName.COMPARISON_OPERATOR:
                             self.GiveSymb(curPattern,curSymb)
                             # res=curPattern[0].switchState(curSymb)
                             # if res==None and curPattern[0].canStop():
