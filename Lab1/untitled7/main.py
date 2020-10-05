@@ -116,12 +116,12 @@ class ETokenName(Enum):
     DEDENT = auto()
     WHITESPACE = auto()
 
+    STRING=auto
+
     ERROR_TOKEN=auto()
     SEMI = auto()
     OPERATOR = auto() #+,-,*,/, //, **,&,|,^,=,+=,-=,%=,*=,/=,&=,|=,^=, //=, ~, <<, >>, %
-    ASSIGN = auto()
     COMPARISON_OPERATOR = auto()
-    SEPARATOR= auto()
     BRACKET = auto()
     KEYWORD = auto()
     DOT = auto()
@@ -306,7 +306,6 @@ class StateMachineFactory:
         q1.addTransition(FuncTransition(funcTransition,q1))
         initial.addTransition(FuncTransition(funcTransition,q1))
         return FiniteStateMachine(initial)
-
     @staticmethod
     def comparisonOperatorStateMachine():
         initial=State(False)
@@ -334,8 +333,36 @@ class StateMachineFactory:
         initial.addTransition(SymbolTransition('|', q7))
         initial.addTransition(SymbolTransition('=', q9))
         return FiniteStateMachine(initial)
+    @staticmethod
+    def quoteStateMachine():
+        initial=State(False)
+        q1=State(False) # "
+        q2 = State(False) # strSymbols
+        q3 =State(True) #end quote
+
+        q4=State(False) # `
+        q5=State(False) #strSymb
+        q6=State(True) #end quote
+
+        strOneLineSymbols=TransitionFunction()
+        strOneLineSymbols.isPossibleToTransit=lambda c : c!='"'
+
+        strMultySymbols=TransitionFunction()
+        strMultySymbols.isPossibleToTransit=lambda c : c!='`'
+
+        initial.addTransition(SymbolTransition('"',q1))
+        q1.addTransition(FuncTransition(strOneLineSymbols,q1))
+        q1.addTransition(SymbolTransition('"',q3))
+
+        initial.addTransition(SymbolTransition('`',q4))
+        q4.addTransition(FuncTransition(strMultySymbols,q5))
+        q5.addTransition(FuncTransition(strMultySymbols,q5))
+        q5.addTransition(SymbolTransition('`',q6))
+
+        return FiniteStateMachine(initial)
 
 patterns=[
+            [StateMachineFactory.quoteStateMachine(),ETokenName.STRING],
             [StateMachineFactory.whitespaceStateMathine(),ETokenName.WHITESPACE],
             [StateMachineFactory.operatorStateMachine(),ETokenName.OPERATOR],
             [StateMachineFactory.comparisonOperatorStateMachine(),ETokenName.COMPARISON_OPERATOR]
@@ -366,10 +393,13 @@ class Lexer:
             self.tokens.append(Token(pattern[1], pattern[0].GetMatchedStr(), pattern[0].startLocation, pattern[0].endLocation))
         if res == None:
             pattern[0].reset()
+        return res!=None
 
     def tokenize(self,filepath : str):
         self.tokens.clear()
         self.CurLine=self.CurColumn=-1
+
+        bIsQuote=False
 
         with p.open() as TextFile:
             for line in TextFile:
@@ -379,7 +409,10 @@ class Lexer:
                     curSymb = line[symbIndex]
 
                     for curPattern in patterns:
-                        if curPattern[1]==ETokenName.OPERATOR or curPattern[1] == ETokenName.WHITESPACE or curPattern[1]==ETokenName.COMPARISON_OPERATOR:
+                        if curPattern[1]==ETokenName.STRING:
+                            bIsQuote=self.GiveSymb(curPattern,curSymb)
+
+                        if not bIsQuote and (curPattern[1]==ETokenName.OPERATOR or curPattern[1] == ETokenName.WHITESPACE or curPattern[1]==ETokenName.COMPARISON_OPERATOR):
                             self.GiveSymb(curPattern,curSymb)
                             # res=curPattern[0].switchState(curSymb)
                             # if res==None and curPattern[0].canStop():
