@@ -142,16 +142,16 @@ def TokenLocToStr(location):
     return "[line:" + str(location[0]) + ",column:" + str(location[1]) + "]";
 
 class Token:
-    def __init__(self, tokenName : ETokenName, value : str, begin : (int, int)):
+    def __init__(self, tokenName : ETokenName, value : str, startLocation,endLocation):
         self.tokenName=tokenName
         self.value=value
-        self.begin=begin
-
+        self.begin=startLocation
+        self.end=endLocation
     def __str__(self):
         if(self.value!=None):
-            return "{" + self.tokenName.name + " | " + str(self.value) + "} starts at : " + TokenLocToStr(self.begin)
+            return "{" + self.tokenName.name + " | " + str(self.value) + "} starts at : " + TokenLocToStr(self.begin) + " | end at: " + TokenLocToStr(self.end)
         else:
-            return "{" + self.tokenName.name + "} starts at : " + TokenLocToStr(self.begin)
+            return "{" + self.tokenName.name + "} starts at : " + TokenLocToStr(self.begin) + " | end at: " + TokenLocToStr(self.end)
 
 class TransitionFunction:
     def isPossibleToTransit(self,c):
@@ -210,11 +210,19 @@ class FiniteStateMachine:
         self.initialState=initialState
         self.currentState=initialState
         self.matchedStr=''
-    def switchState(self,symb):
+        self.startLocation=[-1,-1]
+        self.endLocation=[-1,-1]
+
+    def switchState(self,symb, location):
+        bWasInitState=self.currentState==self.initialState
+
         nextState=self.currentState.getNextStateByTransitions(symb)
         if nextState!= None:
             self.matchedStr+=symb
             self.currentState=nextState
+            self.endLocation=location
+            if bWasInitState:
+                self.startLocation=location
         return nextState
     def canStop(self):
         return self.currentState.isFinal()
@@ -312,6 +320,8 @@ class Lexer:
         self.tokens=[]
         self.indentionLengths=[]
         self.indentionLengths.append(0)
+        self.CurLine=-1
+        self.CurColumn=-1
 
     @staticmethod
     def calculateWhitespaceCharNumAtTheBeginning(text : str):
@@ -321,23 +331,33 @@ class Lexer:
                 spaceNum+=1
         return spaceNum
 
+    def GiveSymb(self,pattern ,symb : str):
+        res = pattern[0].switchState(symb,[self.CurLine,self.CurColumn])
+        if res == None and pattern[0].canStop():
+            self.tokens.append(Token(pattern[1], pattern[0].GetMatchedStr(), pattern[0].startLocation, pattern[0].endLocation))
+        if res == None:
+            pattern[0].reset()
+
     def tokenize(self,filepath : str):
         self.tokens.clear()
-        lineIndex=-1
+        self.CurLine=self.CurColumn=-1
+
         with p.open() as TextFile:
             for line in TextFile:
-                lineIndex+=1
+                self.CurLine+=1
                 for symbIndex in range(len(line)):
+                    self.CurColumn=symbIndex
                     curSymb = line[symbIndex]
-                    #for curPattern in patterns:
-                    curPattern=patterns[1]
-                    if curPattern[1]==ETokenName.OPERATOR:
-                        res=curPattern[0].switchState(curSymb)
-                        if res==None and curPattern[0].canStop():
-                            #draw token
-                            self.tokens.append(Token(curPattern[1],curPattern[0].GetMatchedStr(),[lineIndex,symbIndex]))
-                        if res==None:
-                            curPattern[0].reset()
+
+                    for curPattern in patterns:
+                        if curPattern[1]==ETokenName.OPERATOR or curPattern[1] == ETokenName.WHITESPACE:
+                            self.GiveSymb(curPattern,curSymb)
+                            # res=curPattern[0].switchState(curSymb)
+                            # if res==None and curPattern[0].canStop():
+                            #     #draw token
+                            #     self.tokens.append(Token(curPattern[1],curPattern[0].GetMatchedStr(),[lineIndex,symbIndex]))
+                            # if res==None:
+                            #     curPattern[0].reset()
 
         return self.tokens
                         #elif curPattern[1]==ETokenName.WHITESPACE:
