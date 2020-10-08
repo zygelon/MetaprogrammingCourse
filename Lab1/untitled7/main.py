@@ -123,7 +123,9 @@ class ETokenName(Enum):
     IDENTIFY=auto()
     OPERATOR = auto() #+,-,*, ++,&,|,^,=,+=,-=,%=,*=,/=,&=,|=,^=, //=, ~, <<, >>, %,--,|=
     COMPARISON_OPERATOR = auto()
-    BRACKET = auto()
+    BRACKET=auto()
+#    DEFAULT_BRACKET = auto()
+#    CURLY_BRACKET=auto()
     KEYWORD = auto()
 #    DOT = auto()
 #    NEW_LINE= auto()
@@ -370,12 +372,68 @@ class StateMachineFactory:
         initial.addTransition(FuncTransition(funcTransition,q1))
         q1.addTransition(FuncTransition(funcTransition,q1))
         return FiniteStateMachine(initial)
+    @staticmethod
+    def bracketStateMachine():
+        initial=State(False)
+        q1=State(True)
+        funcTransition=TransitionFunction()
+        funcTransition.isPossibleToTransit=lambda x: re.match(r'[\[\]\{\}\(\)]',x)!=None
+        initial.addTransition(FuncTransition(funcTransition,q1))
+        return FiniteStateMachine(initial)
+    # @staticmethod
+    # def curlyBracketsStateMachine():
+    #     initial=State(False)
+    #     q1=State(False) # {
+    #     q2=State(False) # symb
+    #     q3=State(True)  # }
+    #     initial.addTransition(SymbolTransition('{',q1))
+    #     q1.addTransition(SymbolTransition('}',q3))
+    #
+    #     strSymbol=TransitionFunction()
+    #     strSymbol.isPossibleToTransit=lambda x: x!='}'
+    #     q1.addTransition(FuncTransition(strSymbol,q2))
+    #     q2.addTransition(FuncTransition(strSymbol,q2))
+    #     q2.addTransition(SymbolTransition('}',q3))
+    #     return FiniteStateMachine(initial)
+
+    # @staticmethod
+    # def defultBracketsStateMachine():
+    #     initial = State(False)
+    #     q1 = State(False)  # [
+    #     q2 = State(False)  # symb
+    #     q3 = State(True)  # ]
+    #     initial.addTransition(SymbolTransition('[', q1))
+    #     q1.addTransition(SymbolTransition(']', q3))
+    #
+    #     strSymbol = TransitionFunction()
+    #     strSymbol.isPossibleToTransit = lambda x: x != ']'
+    #     q1.addTransition(FuncTransition(strSymbol, q2))
+    #     q2.addTransition(FuncTransition(strSymbol, q2))
+    #     q2.addTransition(SymbolTransition(']', q3))
+    #
+    #     q11 = State(False)  # (
+    #     q12 = State(False)  # symb
+    #     q13 = State(True)  # )
+    #     initial.addTransition(SymbolTransition('(', q11))
+    #     q1.addTransition(SymbolTransition(')', q13))
+    #
+    #     strSymbol = TransitionFunction()
+    #     strSymbol.isPossibleToTransit = lambda x: x != ')'
+    #     q11.addTransition(FuncTransition(strSymbol, q12))
+    #     q12.addTransition(FuncTransition(strSymbol, q12))
+    #     q12.addTransition(SymbolTransition(')', q13))
+    #
+    #     return FiniteStateMachine(initial)
+
 patterns=[
             [StateMachineFactory.quoteStateMachine(),ETokenName.STRING],
             [StateMachineFactory.whitespaceStateMathine(),ETokenName.WHITESPACE],
             [StateMachineFactory.operatorStateMachine(),ETokenName.OPERATOR],
             [StateMachineFactory.comparisonOperatorStateMachine(),ETokenName.COMPARISON_OPERATOR],
-            [StateMachineFactory.indentifierStateMachine(),ETokenName.IDENTIFY]
+            [StateMachineFactory.indentifierStateMachine(),ETokenName.IDENTIFY],
+            [StateMachineFactory.bracketStateMachine(),ETokenName.BRACKET]
+            # [StateMachineFactory.curlyBracketsStateMachine(),ETokenName.CURLY_BRACKET],
+            # [StateMachineFactory.defultBracketsStateMachine(),ETokenName.DEFAULT_BRACKET],
           ]
 #class Patterns:
     #def __init__(self):
@@ -424,7 +482,7 @@ class Lexer:
 
                         if not bIsQuote and (curPattern[1]==ETokenName.OPERATOR or curPattern[1] ==
                         ETokenName.WHITESPACE or curPattern[1]==ETokenName.COMPARISON_OPERATOR or
-                        curPattern[1]==ETokenName.IDENTIFY):
+                        curPattern[1]==ETokenName.IDENTIFY) or curPattern[1]==ETokenName.BRACKET:
                             self.GiveSymb(curPattern,curSymb)
                             # res=curPattern[0].switchState(curSymb)
                             # if res==None and curPattern[0].canStop():
@@ -446,15 +504,15 @@ class Lexer:
 #            State.ID
 
 
-p=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode.go')
+p=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode2.go')
 lex=Lexer()
 res=lex.tokenize(p)
 for i in res:
-    if type(i)== Token:
+    if type(i) == Token:
         print(i)
 #q=Path.cwd()
 #print(q)
-#with p.open() as TextFile:
+#with p.open() as TextFile
 #    for line in TextFile:
 #        print(line)
 
