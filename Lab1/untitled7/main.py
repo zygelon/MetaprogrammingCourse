@@ -514,17 +514,21 @@ class Lexer:
 
                     for curPattern in patterns:
                         if curPattern[1]==ETokenName.STRING and not bIsComment:
-                            bIsQuote=self.GiveSymb(curPattern,curSymb)
+                            self.GiveSymb(curPattern,curSymb)
+                            bIsQuote = re.match(r'[\"\'\`].',curPattern[0].matchedStr)!=None
 
                         if curPattern[1]==ETokenName.COMMENT and not bIsQuote:
                             self.GiveSymb(curPattern,curSymb)
                             bIsComment= re.match(r'\/\*|\/\/',curPattern[0].matchedStr)!=None
 
                         if bIsComment and curPattern[1]!=ETokenName.COMMENT:
-                            curPattern[0].reset()
+                            if curPattern[1]==ETokenName.OPERATOR:
+                                curPattern[0].reset()
+                            #curPattern[0].reset()
 
                         if bIsQuote and curPattern[1]!=ETokenName.STRING:
-                            curPattern[0].reset()
+                            pass
+                            #curPattern[0].reset()
 
                         if not bIsQuote and not bIsComment and (curPattern[1]==ETokenName.OPERATOR or curPattern[1] ==
                         ETokenName.WHITESPACE or curPattern[1]==ETokenName.COMPARISON_OPERATOR or
