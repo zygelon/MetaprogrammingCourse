@@ -127,6 +127,7 @@ class ETokenName(Enum):
 #    DEFAULT_BRACKET = auto()
 #    CURLY_BRACKET=auto()
     KEYWORD = auto()
+    COMMENT=auto()
 #    DOT = auto()
 #    NEW_LINE= auto()
 #    DATA_TYPE=auto()
@@ -380,6 +381,36 @@ class StateMachineFactory:
         funcTransition.isPossibleToTransit=lambda x: re.match(r'[\[\]\{\}\(\)]',x)!=None
         initial.addTransition(FuncTransition(funcTransition,q1))
         return FiniteStateMachine(initial)
+    @staticmethod
+    def commentStateMachine():
+        initial=State(False) #/
+        q1=State(False) #/
+        q2=State(True) # symb
+
+        initial.addTransition(SymbolTransition('/',q1))
+        q1.addTransition(SymbolTransition('/',q2))
+        funcTransition=TransitionFunction()
+        funcTransition.isPossibleToTransit=lambda x: (x!='\n' and x!='\r')
+        q2.addTransition(FuncTransition(funcTransition,q2))
+        #multiline comment
+#        q11=State(False) # /
+        q12=State(False) # *
+        q13=State(False) # Symb
+        q14=State(False) # *
+        q15=State(True)  # /
+
+#        initial.addTransition(SymbolTransition('/',q11))
+        q1.addTransition(SymbolTransition('*',q12))
+        fTrans=TransitionFunction()
+        fTrans.isPossibleToTransit=lambda x: x!='*'
+        q12.addTransition(FuncTransition(fTrans,q13))
+        q13.addTransition(FuncTransition(fTrans,q13))
+        q12.addTransition(SymbolTransition('*',q14))
+        q13.addTransition(SymbolTransition('*',q14))
+        q14.addTransition(SymbolTransition('/',q15))
+
+        return FiniteStateMachine(initial)
+
     # @staticmethod
     # def curlyBracketsStateMachine():
     #     initial=State(False)
@@ -426,12 +457,14 @@ class StateMachineFactory:
     #     return FiniteStateMachine(initial)
 
 patterns=[
+            [StateMachineFactory.commentStateMachine(), ETokenName.COMMENT],
             [StateMachineFactory.quoteStateMachine(),ETokenName.STRING],
             [StateMachineFactory.whitespaceStateMathine(),ETokenName.WHITESPACE],
             [StateMachineFactory.operatorStateMachine(),ETokenName.OPERATOR],
             [StateMachineFactory.comparisonOperatorStateMachine(),ETokenName.COMPARISON_OPERATOR],
             [StateMachineFactory.indentifierStateMachine(),ETokenName.IDENTIFY],
-            [StateMachineFactory.bracketStateMachine(),ETokenName.BRACKET]
+            [StateMachineFactory.bracketStateMachine(),ETokenName.BRACKET],
+
             # [StateMachineFactory.curlyBracketsStateMachine(),ETokenName.CURLY_BRACKET],
             # [StateMachineFactory.defultBracketsStateMachine(),ETokenName.DEFAULT_BRACKET],
           ]
@@ -444,7 +477,7 @@ class Lexer:
         self.tokens=[]
         self.indentionLengths=[]
         self.indentionLengths.append(0)
-        self.CurLine=-1
+        self.CurLine=0
         self.CurColumn=-1
 
     @staticmethod
@@ -465,10 +498,11 @@ class Lexer:
 
     def tokenize(self,filepath : str):
         self.tokens.clear()
-        self.CurLine=self.CurColumn=-1
+        self.CurLine=0
+        self.CurColumn = -1
 
         bIsQuote=False
-
+        bIsComment=False
         with p.open() as TextFile:
             for line in TextFile:
                 self.CurLine+=1
@@ -477,12 +511,15 @@ class Lexer:
                     curSymb = line[symbIndex]
 
                     for curPattern in patterns:
-                        if curPattern[1]==ETokenName.STRING:
+                        if curPattern[1]==ETokenName.STRING and not bIsComment:
                             bIsQuote=self.GiveSymb(curPattern,curSymb)
 
-                        if not bIsQuote and (curPattern[1]==ETokenName.OPERATOR or curPattern[1] ==
+                        if curPattern[1]==ETokenName.COMMENT and not bIsQuote:
+                            bIsComment=self.GiveSymb(curPattern,curSymb)
+
+                        if not bIsQuote and not bIsComment and (curPattern[1]==ETokenName.OPERATOR or curPattern[1] ==
                         ETokenName.WHITESPACE or curPattern[1]==ETokenName.COMPARISON_OPERATOR or
-                        curPattern[1]==ETokenName.IDENTIFY) or curPattern[1]==ETokenName.BRACKET:
+                        curPattern[1]==ETokenName.IDENTIFY or curPattern[1]==ETokenName.BRACKET):
                             self.GiveSymb(curPattern,curSymb)
                             # res=curPattern[0].switchState(curSymb)
                             # if res==None and curPattern[0].canStop():
