@@ -15,4 +15,6 @@ func main() {
     fmt.Println("hello world")
     */
 
+    a / b
+
 }

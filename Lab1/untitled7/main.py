@@ -216,6 +216,8 @@ class FiniteStateMachine:
         self.matchedStr=''
         self.startLocation=[-1,-1]
         self.endLocation=[-1,-1]
+        #hack for comments
+        #self.bIsSure=False
 
     def switchState(self,symb, location):
         bWasInitState=self.currentState==self.initialState
@@ -502,7 +504,7 @@ class Lexer:
         self.CurColumn = -1
 
         bIsQuote=False
-        bIsComment=False
+        bIsComment = False
         with p.open() as TextFile:
             for line in TextFile:
                 self.CurLine+=1
@@ -515,7 +517,14 @@ class Lexer:
                             bIsQuote=self.GiveSymb(curPattern,curSymb)
 
                         if curPattern[1]==ETokenName.COMMENT and not bIsQuote:
-                            bIsComment=self.GiveSymb(curPattern,curSymb)
+                            self.GiveSymb(curPattern,curSymb)
+                            bIsComment= re.match(r'\/\*|\/\/',curPattern[0].matchedStr)!=None
+
+                        if bIsComment and curPattern[1]!=ETokenName.COMMENT:
+                            curPattern[0].reset()
+
+                        if bIsQuote and curPattern[1]!=ETokenName.STRING:
+                            curPattern[0].reset()
 
                         if not bIsQuote and not bIsComment and (curPattern[1]==ETokenName.OPERATOR or curPattern[1] ==
                         ETokenName.WHITESPACE or curPattern[1]==ETokenName.COMPARISON_OPERATOR or
