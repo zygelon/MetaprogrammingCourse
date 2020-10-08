@@ -1,2 +1,4 @@
-"a"/"b"
-a/b//Hi
+"asdasdasd"
+
+var x string = "Hello World"
+
