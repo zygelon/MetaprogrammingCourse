@@ -117,7 +117,7 @@ class ETokenName(Enum):
     WHITESPACE = auto()
 
     STRING=auto
-
+    NUM=auto()
     ERROR_TOKEN=auto()
 #    SEMI = auto()
     IDENTIFY=auto()
@@ -145,6 +145,10 @@ DATA_TYPES={'int','string','int8','int16','int32','int64','uint8','uint16','uint
 #Position[line,column]
 def TokenLocToStr(location):
     return "[line:" + str(location[0]) + ",column:" + str(location[1]) + "]";
+
+def IsGolangNum(string : str):
+    res = re.match('^[+-]?([0-9_]+([.][0-9_]*)?|[.][0-9_]+)$', string) != None
+    return res
 
 class Token:
     def __init__(self, tokenName : ETokenName, value : str, startLocation,endLocation):
@@ -250,6 +254,8 @@ class IdentifierFSM(FiniteStateMachine):
             self.tokenName=ETokenName.KEYWORD
         elif self.GetMatchedStr() in DATA_TYPES:
             self.tokenName=ETokenName.DATA_TYPE
+        elif IsGolangNum(self.matchedStr):
+            self.tokenName=ETokenName.NUM
         else:
             self.tokenName=ETokenName.IDENTIFY
         return self.tokenName
@@ -483,13 +489,13 @@ patterns=[
             # [StateMachineFactory.indentifierStateMachine(),ETokenName.IDENTIFY],
             # [StateMachineFactory.bracketStateMachine(),ETokenName.BRACKET],
 
-            StateMachineFactory.commentStateMachine(),
-            StateMachineFactory.quoteStateMachine(),
-            StateMachineFactory.whitespaceStateMathine(),
-            StateMachineFactory.operatorStateMachine(),
-            StateMachineFactory.comparisonOperatorStateMachine(),
-            StateMachineFactory.indentifierStateMachine(),
-            StateMachineFactory.bracketStateMachine(),
+           StateMachineFactory.commentStateMachine(),
+           StateMachineFactory.quoteStateMachine(),
+           StateMachineFactory.whitespaceStateMathine(),
+           StateMachineFactory.operatorStateMachine(),
+           StateMachineFactory.comparisonOperatorStateMachine(),
+           StateMachineFactory.indentifierStateMachine(),
+           StateMachineFactory.bracketStateMachine(),
           ]
 #class Patterns:
     #def __init__(self):
@@ -537,7 +543,7 @@ class Lexer:
                     for curPattern in patterns:
                         if curPattern.GetTokenName()==ETokenName.STRING and not bIsComment:
                             self.GiveSymb(curPattern,curSymb)
-                            delthis = len(curPattern.GetMatchedStr())
+                           # delthis = len(curPattern.GetMatchedStr())
                             bIsQuote = re.match(r'[\"\'\`].',curPattern.matchedStr)!=None
 
                         if curPattern.GetTokenName()==ETokenName.COMMENT and not bIsQuote:
@@ -558,6 +564,7 @@ class Lexer:
                         curPattern.GetTokenName() == ETokenName.WHITESPACE or
                         curPattern.GetTokenName() == ETokenName.COMPARISON_OPERATOR or
                         curPattern.GetTokenName() == ETokenName.IDENTIFY or
+                        curPattern.GetTokenName() == ETokenName.NUM or
                         curPattern.GetTokenName() == ETokenName.BRACKET or
                         curPattern.GetTokenName() == ETokenName.DATA_TYPE or
                         curPattern.GetTokenName() == ETokenName.KEYWORD
@@ -582,7 +589,7 @@ class Lexer:
 #            State.ID
 
 
-p=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode2.go')
+p=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode.go')
 lex=Lexer()
 res=lex.tokenize(p)
 for i in res:

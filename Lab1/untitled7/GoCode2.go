@@ -1,4 +1,1 @@
-"asdasdasd"
-
-var x string = "Hello World"
-
+15
