@@ -598,7 +598,7 @@ class Lexer:
                         tName == ETokenName.KEYWORD or
                         tName == ETokenName.IDENTIFY or
                         tName == ETokenName.DATA_TYPE or
-                        (tName == ETokenName.STRING and self.tokens[-2].value[0]=='"')
+                        (tName == ETokenName.STRING and self.tokens[-1].value[0]=='"')
                     ):
                         self.GenerateIndent()
 
