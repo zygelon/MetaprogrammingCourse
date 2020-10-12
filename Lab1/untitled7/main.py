@@ -5,6 +5,10 @@ import gc
 import collections
 import re
 
+indentLen=8
+currentIndent=0
+
+
 class DListNode:
     """
     A node in a doubly-linked list.
@@ -16,6 +20,8 @@ class DListNode:
 
     def __repr__(self):
         return repr(self.data)
+
+
 
 
 class DoublyLinkedList:
@@ -112,10 +118,10 @@ class DoublyLinkedList:
 
 #TokenName.value , TokenName.name
 class ETokenName(Enum):
-    IDENT = auto()
-    DEDENT = auto()
+    INDENT = auto()
+#    DEDENT = auto()
     WHITESPACE = auto()
-
+    NEW_LINE = auto()
     STRING=auto
     NUM=auto()
     ERROR_TOKEN=auto()
@@ -259,6 +265,9 @@ class IdentifierFSM(FiniteStateMachine):
         else:
             self.tokenName=ETokenName.IDENTIFY
         return self.tokenName
+
+#class IndentFSM(FiniteStateMachine):
+#    def
 
 class Automaton:
     def __init__(self,FSM : FiniteStateMachine):
@@ -435,6 +444,27 @@ class StateMachineFactory:
 
         return FiniteStateMachine(initial,ETokenName.COMMENT)
 
+    @staticmethod
+    def newLineStateMachine():
+        initial=State(False)
+        q1=State(True)
+
+        initial.addTransition(SymbolTransition('\n',q1))
+        return FiniteStateMachine(initial,ETokenName.NEW_LINE)
+
+    @staticmethod
+    def indentStateMachine():
+        initial = State(False)
+        q1=State(True)
+        initial.addTransition(SymbolTransition(' ',q1))
+        q1.addTransition(SymbolTransition(' ',q1))
+        return FiniteStateMachine(initial,ETokenName.INDENT)
+        #fTrans = TransitionFunction()
+        #fTrans.isPossibleToTransit=lambda x:
+
+
+# @staticmethod
+# def
     # @staticmethod
     # def curlyBracketsStateMachine():
     #     initial=State(False)
@@ -491,11 +521,13 @@ patterns=[
 
            StateMachineFactory.commentStateMachine(),
            StateMachineFactory.quoteStateMachine(),
-           StateMachineFactory.whitespaceStateMathine(),
+#           StateMachineFactory.whitespaceStateMathine(),
            StateMachineFactory.operatorStateMachine(),
            StateMachineFactory.comparisonOperatorStateMachine(),
            StateMachineFactory.indentifierStateMachine(),
            StateMachineFactory.bracketStateMachine(),
+           StateMachineFactory.newLineStateMachine(),
+#          StateMachineFactory.indentStateMachine(),
           ]
 #class Patterns:
     #def __init__(self):
@@ -517,15 +549,34 @@ class Lexer:
                 spaceNum+=1
         return spaceNum
 
+    #def HandleToken(self, tokenName : ETokenName, matchedStr,startLoc, endLoc):
+        #if tokenName==ETokenName.INDENT:
+            #№pass
+
+    def GenerateIndent(self):
+        for i in range(currentIndent):
+            self.tokens.insert(len(self.tokens)-1,Token(ETokenName.INDENT, " "*indentLen, [-1,-1], [-1,-1]))
+         #   self.tokens.append(Token(ETokenName.INDENT, " "*indentLen, [-1,-1], [-1,-1]))
+
     def GiveSymb(self,pattern ,symb : str):
+        global currentIndent
+
         res = pattern.switchState(symb,[self.CurLine,self.CurColumn])
         if res == None and pattern.canStop():
+            if pattern.matchedStr == '{' or pattern.matchedStr == '(' or pattern.matchedStr == '[':
+                currentIndent+=1
+            elif pattern.matchedStr == '}' or pattern.matchedStr == ')' or pattern.matchedStr == ']':
+                currentIndent-=1
             self.tokens.append(Token(pattern.GetTokenName(), pattern.GetMatchedStr(), pattern.startLocation, pattern.endLocation))
-        if res == None:
+            pattern.reset()
+            return self.GiveSymb(pattern, symb)
+        elif res == None:
             pattern.reset()
         return res!=None
 
-    def tokenize(self,filepath : str):
+    def tokenize(self,STRs : str):
+        global currentIndent
+        currentIndent=0
         self.tokens.clear()
         self.CurLine=0
         self.CurColumn = -1
@@ -533,49 +584,61 @@ class Lexer:
         bIsQuote=False
         bIsComment = False
         #"r", encoding='utf-8'
-        with p.open() as TextFile:
-            for line in TextFile:
-                self.CurLine+=1
-                for symbIndex in range(len(line)):
-                    self.CurColumn=symbIndex
-                    curSymb = line[symbIndex]
+        for line in STRs:
+            self.CurLine+=1
+            for symbIndex in range(len(line)):
+                self.CurColumn=symbIndex
+                curSymb = line[symbIndex]
 
-                    for curPattern in patterns:
-                        if curPattern.GetTokenName()==ETokenName.STRING and not bIsComment:
-                            self.GiveSymb(curPattern,curSymb)
-                           # delthis = len(curPattern.GetMatchedStr())
-                            bIsQuote = re.match(r'[\"\'\`].',curPattern.matchedStr)!=None
+                if len(self.tokens)>1:
+                    tName=self.tokens[-1].tokenName
+                    if self.tokens[-2].tokenName==ETokenName.NEW_LINE and (
+                        tName==ETokenName.OPERATOR or
+                        tName==ETokenName.NUM or
+                        tName == ETokenName.KEYWORD or
+                        tName == ETokenName.IDENTIFY or
+                        tName == ETokenName.DATA_TYPE or
+                        (tName == ETokenName.STRING and self.tokens[-2].value[0]=='"')
+                    ):
+                        self.GenerateIndent()
 
-                        if curPattern.GetTokenName()==ETokenName.COMMENT and not bIsQuote:
-                            self.GiveSymb(curPattern,curSymb)
-                            bIsComment= re.match(r'\/\*|\/\/',curPattern.matchedStr)!=None
+                for curPattern in patterns:
+                    if curPattern.GetTokenName()==ETokenName.STRING and not bIsComment:
+                        self.GiveSymb(curPattern,curSymb)
+                       # delthis = len(curPattern.GetMatchedStr())
+                        bIsQuote = re.match(r'[\"\'\`].',curPattern.matchedStr)!=None
 
-                        if bIsComment and curPattern.GetTokenName()!=ETokenName.COMMENT:
-                            if curPattern.GetTokenName()==ETokenName.OPERATOR:
-                                curPattern.reset()
-                            #curPattern[0].reset()
+                    if curPattern.GetTokenName()==ETokenName.COMMENT and not bIsQuote:
+                        self.GiveSymb(curPattern,curSymb)
+                        bIsComment= re.match(r'\/\*|\/\/',curPattern.matchedStr)!=None
 
-                        if bIsQuote and curPattern.GetTokenName()!=ETokenName.STRING:
-                            pass
-                            #curPattern[0].reset()
+                    if bIsComment and curPattern.GetTokenName()!=ETokenName.COMMENT:
+                        if curPattern.GetTokenName()==ETokenName.OPERATOR:
+                            curPattern.reset()
+                        #curPattern[0].reset()
 
-                        if not bIsQuote and not bIsComment and (
-                        curPattern.GetTokenName() == ETokenName.OPERATOR or
-                        curPattern.GetTokenName() == ETokenName.WHITESPACE or
-                        curPattern.GetTokenName() == ETokenName.COMPARISON_OPERATOR or
-                        curPattern.GetTokenName() == ETokenName.IDENTIFY or
-                        curPattern.GetTokenName() == ETokenName.NUM or
-                        curPattern.GetTokenName() == ETokenName.BRACKET or
-                        curPattern.GetTokenName() == ETokenName.DATA_TYPE or
-                        curPattern.GetTokenName() == ETokenName.KEYWORD
-                        ):
-                            self.GiveSymb(curPattern,curSymb)
-                            # res=curPattern[0].switchState(curSymb)
-                            # if res==None and curPattern[0].canStop():
-                            #     #draw token
-                            #     self.tokens.append(Token(curPattern[1],curPattern[0].GetMatchedStr(),[lineIndex,symbIndex]))
-                            # if res==None:
-                            #     curPattern[0].reset()
+                    if bIsQuote and curPattern.GetTokenName()!=ETokenName.STRING:
+                        pass
+                        #curPattern[0].reset()
+
+                    if not bIsQuote and not bIsComment and (
+                    curPattern.GetTokenName() == ETokenName.OPERATOR or
+                    curPattern.GetTokenName() == ETokenName.WHITESPACE or
+                    curPattern.GetTokenName() == ETokenName.COMPARISON_OPERATOR or
+                    curPattern.GetTokenName() == ETokenName.IDENTIFY or
+                    curPattern.GetTokenName() == ETokenName.NUM or
+                    curPattern.GetTokenName() == ETokenName.BRACKET or
+                    curPattern.GetTokenName() == ETokenName.DATA_TYPE or
+                    curPattern.GetTokenName() == ETokenName.KEYWORD or
+                    curPattern.GetTokenName() == ETokenName.NEW_LINE
+                    ):
+                        self.GiveSymb(curPattern,curSymb)
+                        # res=curPattern[0].switchState(curSymb)
+                        # if res==None and curPattern[0].canStop():
+                        #     #draw token
+                        #     self.tokens.append(Token(curPattern[1],curPattern[0].GetMatchedStr(),[lineIndex,symbIndex]))
+                        # if res==None:
+                        #     curPattern[0].reset()
 
         return self.tokens
                         #elif curPattern[1]==ETokenName.WHITESPACE:
@@ -589,12 +652,27 @@ class Lexer:
 #            State.ID
 
 
-p=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode.go')
+p=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode2.go')
 lex=Lexer()
-res=lex.tokenize(p)
+
+FileStrs=[]
+
+with p.open() as TextFile:
+    for line in TextFile:
+        FileStrs.append(line)
+
+#print(type(data))
+
+res=lex.tokenize(FileStrs)
+
 for i in res:
     if type(i) == Token:
         print(i)
+
+testout=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode3.go')
+with testout.open(mode='w') as writeFile:
+    for i in FileStrs:
+        writeFile.write(i)
 #q=Path.cwd()
 #print(q)
 #with p.open() as TextFile
