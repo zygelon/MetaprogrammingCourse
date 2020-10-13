@@ -146,6 +146,12 @@ KEYWORDS_VALUES={'break','case','chan','const','continue','default','defer',
 
 DATA_TYPES={'int','string','int8','int16','int32','int64','uint8','uint16','uint32','uint64','uint'
                'byte','rune','uintptr','float32','float64','complex64','complex128'}
+
+NEED_WHITESPACE_BETWEEN={
+    frozenset((ETokenName.IDENTIFY,ETokenName.IDENTIFY)),
+    frozenset((ETokenName.IDENTIFY,ETokenName.KEYWORD)),
+}
+
 #
 #
 #Position[line,column]
@@ -643,8 +649,28 @@ class Lexer:
         return self.tokens
                         #elif curPattern[1]==ETokenName.WHITESPACE:
 
+class Formatter:
+    def __init__(self,tokens):
+        self.tokens=tokens
+        self.res=''
 
-        #line=
+    def need_whitespace(self,a : Token, b : Token):
+        if a.value=='&' or a.value=='|' or a.value=='^':
+            return False
+        elif a.value=='!':
+            return False
+        return frozenset((a,b)) in NEED_WHITESPACE_BETWEEN
+
+    def activate(self):
+
+        for i in range(1,len(self.tokens)):
+            if self.need_whitespace(self.tokens[i-1],self.tokens[i]):
+                self.tokens.insert(i,Token(ETokenName.WHITESPACE,' ',[-2,-2],[-2,-2]))
+
+
+        for i in self.tokens:
+            self.res+=i.value
+        return self.res
 
 #def ShowAll_IDs:
 #    for obj in gc.get_objects():
@@ -663,21 +689,20 @@ with p.open() as TextFile:
 
 #print(type(data))
 
-res=lex.tokenize(FileStrs)
+lexRes=lex.tokenize(FileStrs)
 
-for i in res:
+for i in lexRes:
     if type(i) == Token:
         print(i)
 
+formatter=Formatter(lexRes)
+formatter.activate()
+
 testout=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode3.go')
 with testout.open(mode='w') as writeFile:
-    for i in FileStrs:
-        writeFile.write(i)
-#q=Path.cwd()
-#print(q)
-#with p.open() as TextFile
-#    for line in TextFile:
-#        print(line)
+    writeFile.write(formatter.res)
+    #for i in FileStrs:
+        #writeFile.write(i)
 
 #print("Counter = "+str(State.counter))
 """
