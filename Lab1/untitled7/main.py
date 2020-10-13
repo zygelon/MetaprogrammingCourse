@@ -317,7 +317,8 @@ class StateMachineFactory:
         q14=State(True) # >>
         q15=State(True) # %
         q16=State(False) # :
-
+        q17=State(True) # .
+        q18=State(True) # ,
         #q1.addTransition(q4) # ++
         #q2.addTransition(q10) # --
         q11.addTransition(SymbolTransition('<',q12)) # <<
@@ -346,7 +347,8 @@ class StateMachineFactory:
         initial.addTransition(SymbolTransition('>', q13))
         initial.addTransition(SymbolTransition('%', q15))
         initial.addTransition(SymbolTransition(':', q16))
-
+        initial.addTransition(SymbolTransition('.',q17))
+        initial.addTransition(SymbolTransition(',', q18))
         return FiniteStateMachine(initial,ETokenName.OPERATOR)
     @staticmethod
     def whitespaceStateMathine():
@@ -414,7 +416,7 @@ class StateMachineFactory:
         initial = State(False)
         q1=State(True)
         funcTransition=TransitionFunction()
-        funcTransition.isPossibleToTransit=lambda x : re.match(r'[0-9a-zA-Z_.]+',x)!=None
+        funcTransition.isPossibleToTransit=lambda x : re.match(r'[0-9a-zA-Z_]+',x)!=None
         initial.addTransition(FuncTransition(funcTransition,q1))
         q1.addTransition(FuncTransition(funcTransition,q1))
         return IdentifierFSM(initial,ETokenName.IDENTIFY)
@@ -566,8 +568,8 @@ class Lexer:
         #if tokenName==ETokenName.INDENT:
             #№pass
 
-    def GenerateIndent(self):
-        for i in range(currentIndent):
+    def GenerateIndent(self,numIndent):
+        for i in range(numIndent):
             self.tokens.insert(len(self.tokens)-1,Token(ETokenName.INDENT, " "*indentLen, [-1,-1], [-1,-1]))
          #   self.tokens.append(Token(ETokenName.INDENT, " "*indentLen, [-1,-1], [-1,-1]))
 
@@ -613,8 +615,9 @@ class Lexer:
                         tName == ETokenName.DATA_TYPE or
                         (tName == ETokenName.STRING and self.tokens[-1].value[0]=='"')
                     ):
-                        self.GenerateIndent()
-
+                        self.GenerateIndent(currentIndent)
+                    elif tName==ETokenName.BRACKET:
+                        self.GenerateIndent(currentIndent)
                 for curPattern in patterns:
                     if curPattern.GetTokenName()==ETokenName.STRING and not bIsComment:
                         self.GiveSymb(curPattern,curSymb)
@@ -662,9 +665,12 @@ class Formatter:
         self.res=''
 
     def need_whitespace(self,a : Token, b : Token):
-        if a.value=='&' or a.value=='|' or a.value=='^':
-            return False
-        elif a.value=='!':
+        if a.value=='&' or \
+                a.value=='|' or \
+                a.value=='^' or \
+                a.value=='!' or \
+                b.value=='.' or \
+                a.value=='.':
             return False
         elif (a.value==')' and b.value=='{' or
              a.value=='import' and b.value=='('):
@@ -673,13 +679,14 @@ class Formatter:
         return frozenset((a.tokenName,b.tokenName)) in NEED_WHITESPACE_BETWEEN
 
     def activate(self):
-
+        newTokens=self.tokens.copy()
+        offset=0
         for i in range(1,len(self.tokens)):
             if self.need_whitespace(self.tokens[i-1],self.tokens[i]):
-                self.tokens.insert(i,Token(ETokenName.WHITESPACE,' ',[-2,-2],[-2,-2]))
+                newTokens.insert(i+offset,Token(ETokenName.WHITESPACE,' ',[-2,-2],[-2,-2]))
+                offset+=1
 
-
-        for i in self.tokens:
+        for i in newTokens:
             self.res+=i.value
         return self.res
 
@@ -689,7 +696,7 @@ class Formatter:
 #            State.ID
 
 
-p=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode2.go')
+p=Path('D:/Fourth_Course_ShareX/Metaprogramming/MetaprogrammingCourse/Lab1/untitled7/GoCode4.go')
 lex=Lexer()
 
 FileStrs=[]
