@@ -1,43 +1,42 @@
 // Quick Sort in Golang
-packagemain
+package main
 
-import(
+import (
         "fmt"
         "math/rand"
         "time"
 )
 
-funcmain(){
-
-        slice:=generateSlice(20)
-        fmt.Println("\n--- Unsorted --- \n\n"slice)
-        quicksort(slice)
-        fmt.Println("\n--- Sorted ---\n\n"slice"\n")
+func main () {
+        slice := generateSlice (20)
+        fmt.Println ("\n--- Unsorted --- \n\n"slice )
+        quicksort ( slice )
+        fmt.Println ("\n--- Sorted ---\n\n"slice"\n")
 }
 
 // Generates a slice of size, size filled with random numbers
-funcgenerateSlice(sizeint)[]int{
+func generateSlice ( size int )[] int {
 
-        slice:=make([]intsizesize)
-        rand.Seed(time.Now().UnixNano())
-        fori:=0i<sizei++{
-                slice[i]rand.Intn(999)-rand.Intn(999)
+        slice := make ([] int size size )
+        rand.Seed ( time.Now () .UnixNano ())
+        for i := 0i<size i ++{
+                slice [ i ] rand.Intn (999)- rand.Intn (999)
 }
-        returnslice
-}
-
-funcquicksort(a[]int)[]int{
-        iflen(a)<2{
-                returna
+        return slice
 }
 
-        leftright:=0len(a)-1
+func quicksort ( a [] int )[] int {
+        if len ( a )<2{
+                return a
+}
 
-        pivot:=rand.Int()%len(a)
+        left right := 0len ( a )- 1
 
-        a[pivot]a[right]a[right]a[pivot]
+        pivot := rand.Int ()% len ( a )
 
-        fori_:=rangea{
+        a [ pivot ] a [ right ] a [ right ] a [ pivot ]
+
+        for i_ :=range a {
                 ifa[i]<a[right]{
                         a[left]a[i]a[i]a[left]
                         left++
@@ -50,3 +49,4 @@ funcquicksort(a[]int)[]int{
         quicksort(a[left+1])
 
         returna
+}

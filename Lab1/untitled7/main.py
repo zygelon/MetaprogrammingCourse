@@ -150,6 +150,13 @@ DATA_TYPES={'int','string','int8','int16','int32','int64','uint8','uint16','uint
 NEED_WHITESPACE_BETWEEN={
     frozenset((ETokenName.IDENTIFY,ETokenName.IDENTIFY)),
     frozenset((ETokenName.IDENTIFY,ETokenName.KEYWORD)),
+
+    frozenset((ETokenName.OPERATOR,ETokenName.IDENTIFY)),
+    frozenset((ETokenName.OPERATOR,ETokenName.NUM)),
+
+    frozenset((ETokenName.BRACKET,ETokenName.IDENTIFY)),
+    frozenset((ETokenName.BRACKET,ETokenName.DATA_TYPE)),
+    frozenset((ETokenName.IDENTIFY,ETokenName.DATA_TYPE))
 }
 
 #
@@ -659,7 +666,11 @@ class Formatter:
             return False
         elif a.value=='!':
             return False
-        return frozenset((a,b)) in NEED_WHITESPACE_BETWEEN
+        elif (a.value==')' and b.value=='{' or
+             a.value=='import' and b.value=='('):
+            return True
+
+        return frozenset((a.tokenName,b.tokenName)) in NEED_WHITESPACE_BETWEEN
 
     def activate(self):
 
